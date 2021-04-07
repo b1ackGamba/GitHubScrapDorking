@@ -5,6 +5,10 @@
 # location - https://github.com/b1ackGamba/GitHubScrap
 
 
+#TODO filter duplicate files from diferent code, por ejmplo
+#https://github.com/mattfred/MediaCenter/blob/c84a520de9fccac2460ec94fec1589e06ef18cc6/lib/libUPnP/Neptune/Extras/Tools/Testing/https-urls.txt
+#https://github.com/quarnster/boxeebox-xbmc/blob/7209547d3d247a4082de956f4d9a765086d96985/lib/libUPnP/Neptune/Extras/Tools/Testing/https-urls.txt
+
 import sys, json, requests, argparse, os, colored
 from colored import stylize
 from re import compile
@@ -144,6 +148,8 @@ class GithubScrapDork():
 			sleep(GITHUB_HTTP_DELAY)
 			github_soup_count = BeautifulSoup(github_html_count.text, 'html.parser')
 			github_count = github_soup_count.span.text
+			if "k" in github_count.lower():
+				github_count = "{}000".format(github_count[:github_count.lower().index("k")])
 		except Exception as exception:
 			raise MsgException('Unable to count GitHub search results', exception)
 		return github_count
@@ -172,9 +178,13 @@ class GithubScrapDork():
 						"dork": dork,
 						"query": query_term
 						})
+
+					if not self.output_file or self.verbosity:
+						print(stylize("https://github.com{}".format(github_search_occurrence['href']), colored.fg("cyan_3")))
+
 		except Exception as exception:
 			raise MsgException('Unable to retrieve GitHub search results', exception)
-		return github_search_result
+		return github_search_result[1:]
 
 
 	def __saveGithubResults(self):
@@ -186,12 +196,11 @@ class GithubScrapDork():
 		except Exception as exception:
 			raise MsgException('Output file could not be written', exception)
 
-
+	"""
 	def __showresults(self, github_results):
-		"""Print results if no output file is specified"""
 		for result in github_results:
 			print(stylize(result["link"], colored.fg("cyan_3")))
-
+	"""
 
 	def __github_logout(self, github_http_session):
 		"""github logging out (2 requests needed)"""
@@ -216,6 +225,7 @@ class GithubScrapDork():
 	def launchGitDorking(self):
 		"""Run the query with every dork"""
 		try:
+			print("[+] Started Github Scraping with the query {}".format(self.github_query_terms))
 			github_http_session = requests.session()
 			github_http_headers = {
 				'User-Agent': 'Mozilla Firefox Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0',
@@ -241,8 +251,10 @@ class GithubScrapDork():
 						github_results = self.__github_search_retrieval(github_http_session, query_term, github_type, dork)
 						if github_results:
 							self.final_results["results"].extend(github_results)
+							"""
 							if not self.output_file or self.verbosity:
 								self.__showresults(github_results)
+							"""
 
 			if self.output_file:
 				unseen_urls = self.__saveGithubResults()
