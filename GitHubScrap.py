@@ -234,7 +234,7 @@ class GithubScrapDork():
 					github_count = self.__github_search_count(github_http_session, query_term, github_type)
 					if int(github_count) >= 1:
 						print(stylize("[+] {} results while looking for {} ({})".format(github_count, query_term, github_type), colored.fg("green")))
-					else:
+					elif self.verbosity:
 						print("[+] {} results while looking for {} ({})".format(github_count, query_term, github_type))
 
 					if github_count != '0':
