@@ -5,10 +5,6 @@
 # location - https://github.com/b1ackGamba/GitHubScrap
 
 
-#TODO filter duplicate files from diferent code, por ejmplo
-#https://github.com/mattfred/MediaCenter/blob/c84a520de9fccac2460ec94fec1589e06ef18cc6/lib/libUPnP/Neptune/Extras/Tools/Testing/https-urls.txt
-#https://github.com/quarnster/boxeebox-xbmc/blob/7209547d3d247a4082de956f4d9a765086d96985/lib/libUPnP/Neptune/Extras/Tools/Testing/https-urls.txt
-
 import sys, json, requests, argparse, os, colored
 from colored import stylize
 from re import compile
