@@ -5,9 +5,7 @@ Scrape Github query results with credentials + 2FA.
 
 Basic usage:
 
-```
-python GitHubScrap.py -c config.json -d Dorks/all_dorks.txt -org uber.com
-```
+`python GitHubScrap.py -c config.json -d Dorks/all_dorks.txt -org uber.com`
 
 Save JSON output to file:
 ```
