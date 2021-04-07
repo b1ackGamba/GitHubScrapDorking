@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 # GitHubScrap is a simple Python 3 script that automates GitHub OSINT during early stages of Red Team exercises
-# author - mamatb (t.me/m_amatb)
-# location - https://github.com/mamatb/GitHubScrap
-# style guide - https://google.github.io/styleguide/pyguide.html
+# author - mamatb & b1ackGamba
+# location - https://github.com/b1ackGamba/GitHubScrap
 
 
-import sys, json, requests, argparse, os
+import sys, json, requests, argparse, os, colored
+from colored import stylize
 from re import compile
 from time import sleep
 from pyotp import TOTP
@@ -53,11 +53,12 @@ class GithubScrapDork():
 		self.dorks = self.__load_dorkfile(dorkfile)
 		self.output_file = output_file
 		self.verbosity = verbosity
+		self.final_results = {"results":list()}
 
 	def __debugInfo(self, msg):
 		"""Print debug info if verbose enabled"""
 		if self.verbosity:
-			print("[-] DEBUG: {}".format(msg))
+			print(stylize("[*] DEBUG: {}".format(msg), colored.fg("wheat_1")))
 
 	def __load_config(self, config_path):
 		"""json config file reading"""
@@ -148,7 +149,7 @@ class GithubScrapDork():
 			github_search_result = list()
 
 			for github_page in range(int(github_pages)):
-				github_html_page = github_http_session.get(f'https://github.com/search?o=desc&p={github_page + 1}&q={quote_plus(self.github_query_terms)}&type={quote_plus(github_type)}')
+				github_html_page = github_http_session.get(f'https://github.com/search?o=desc&p={github_page + 1}&q={quote_plus(query_term)}&type={quote_plus(github_type)}')
 				sleep(GITHUB_HTTP_DELAY)
 				github_soup_page = BeautifulSoup(github_html_page.text, 'html.parser')
 				github_search_date = datetime.now().strftime('%F %T')
@@ -159,31 +160,20 @@ class GithubScrapDork():
 		return github_search_result
 
 
-	def __save_output_return_unseen(self, urls_dict_new):
+	def __saveGithubResults(self):
 		"""json output file writing"""
-		self.__debugInfo("Saving results JSON into file {}".format(self.output_path))
+		self.__debugInfo("Saving JSON results into file {}".format(self.output_file))
 		try:
-			urls_new = set(urls_dict_new.keys())
-			urls_old = {}
-			if exists(self.output_path):
-				with open(self.output_path, 'r+') as output_file:
-					urls_dict_old = json.load(output_file)
-					urls_old = set(urls_dict_old.keys())
-					urls_dict_new.update(urls_dict_old)
-					output_file.seek(0)
-					json.dump(urls_dict_new, output_file)
-			else:
-				with open(self.output_path, 'w') as output_file:
-					json.dump(urls_dict_new, output_file)
+			with open(self.output_file, 'w') as wfile:
+					json.dump(self.final_results, wfile)
 		except Exception as exception:
 			raise MsgException('Output file could not be written', exception)
-		return urls_new.difference(urls_old)
 
 
 	def __showresults(self, github_results):
 		"""Print results if no output file is specified"""
 		for result in github_results:
-			print(result["link"])
+			print(stylize(result["link"], colored.fg("cyan_3")))
 
 
 	def __github_logout(self, github_http_session):
@@ -225,15 +215,21 @@ class GithubScrapDork():
 				for github_type in github_types:
 					query_term = "{} {}".format(self.github_query_terms, dork)
 					github_count = self.__github_search_count(github_http_session, query_term, github_type, dork)
-					print(f'[+] {github_count} results while looking for {query_term} ({github_type})')
+					if int(github_count) >= 1:
+						print(stylize("[+] {} results while looking for {} ({})".format(github_count, query_term, github_type), colored.fg("green")))
+					else:
+						print("[+] {} results while looking for {} ({})".format(github_count, query_term, github_type))
+
 					if github_count != '0':
 						github_results = self.__github_search_retrieval(github_http_session, query_term, github_type, dork)
 						if github_results:
-							if self.output_file:
-								unseen_urls = self.__save_output_return_unseen(github_results)
-							else:
+							self.final_results["results"].extend(github_results)
+							if not self.output_file or self.verbosity:
 								self.__showresults(github_results)
+				break
 
+			if self.output_file and self.final_results["results"]:
+				unseen_urls = self.__saveGithubResults()
 
 		except MsgException as msg_exception:
 			panic(msg_exception)
