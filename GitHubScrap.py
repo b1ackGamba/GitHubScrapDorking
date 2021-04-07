@@ -164,6 +164,7 @@ class GithubScrapDork():
 			github_pages_tag = github_soup_pages.find('em', {'data-total-pages': True})
 			github_pages = github_pages_tag['data-total-pages'] if github_pages_tag else 1
 			github_search_result = list()
+			dup_files = list()
 
 			for github_page in range(int(github_pages)):
 				github_html_page = github_http_session.get(f'https://github.com/search?o=desc&p={github_page + 1}&q={quote_plus(query_term)}&type={quote_plus(github_type)}')
@@ -171,8 +172,16 @@ class GithubScrapDork():
 				github_soup_page = BeautifulSoup(github_html_page.text, 'html.parser')
 				github_search_date = datetime.now().strftime('%F %T')
 				for github_search_occurrence in github_soup_page.find_all('a', {'data-hydro-click': True}):
+					link = "https://github.com{}".format(github_search_occurrence['href'])
+					#Remove duplicate findings in different repos with same code
+					file = link.split("/")[-1]
+					if file in dup_files or "sponsors/accounts" in link:
+						continue
+					else:
+						dup_files.append(file)
+
 					github_search_result.append({
-						"link": "https://github.com{}".format(github_search_occurrence['href']),
+						"link": link,
 						"github_type": github_type, 
 						"datetime": github_search_date,
 						"dork": dork,
@@ -180,11 +189,11 @@ class GithubScrapDork():
 						})
 
 					if not self.output_file or self.verbosity:
-						print(stylize("https://github.com{}".format(github_search_occurrence['href']), colored.fg("cyan_3")))
+						print(stylize(link, colored.fg("cyan_3")))
 
 		except Exception as exception:
 			raise MsgException('Unable to retrieve GitHub search results', exception)
-		return github_search_result[1:]
+		return github_search_result
 
 
 	def __saveGithubResults(self):
