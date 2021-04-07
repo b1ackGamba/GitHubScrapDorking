@@ -182,7 +182,7 @@ class GithubScrapDork():
 		self.__debugInfo("Saving JSON results into file {}".format(self.output_file))
 		try:
 			with open(self.output_file, 'w') as wfile:
-					json.dump(self.final_results, wfile)
+				json.dump(self.final_results, wfile)
 		except Exception as exception:
 			raise MsgException('Output file could not be written', exception)
 
