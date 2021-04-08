@@ -54,7 +54,7 @@ def enablePrint():
 
 
 class GithubScrapDork():
-	def __init__(self, config_file, dorkfile, github_query_terms, output_file, verbosity, silent):
+	def __init__(self, config_file, dorkfile, github_query_terms, output_file, verbosity, silent, filterdups):
 		self.github_query_terms = github_query_terms
 		self.github_username, self.github_password, self.github_otp = self.__load_config(config_file)
 		self.dorks = self.__load_dorkfile(dorkfile)
@@ -62,6 +62,8 @@ class GithubScrapDork():
 		self.verbosity = verbosity
 		self.silent = silent
 		self.final_results = {"results":list()}
+		self.filterdups = filterdups
+		self.dup_files = list()
 
 		if silent:
 			blockPrint()
@@ -160,7 +162,6 @@ class GithubScrapDork():
 			github_pages_tag = github_soup_pages.find('em', {'data-total-pages': True})
 			github_pages = github_pages_tag['data-total-pages'] if github_pages_tag else 1
 			github_search_result = list()
-			dup_files = list()
 
 			for github_page in range(int(github_pages)):
 				github_html_page = github_http_session.get(f'https://github.com/search?o=desc&p={github_page + 1}&q={quote_plus(query_term)}&type={quote_plus(github_type)}')
@@ -169,12 +170,14 @@ class GithubScrapDork():
 				github_search_date = datetime.now().strftime('%F %T')
 				for github_search_occurrence in github_soup_page.find_all('a', {'data-hydro-click': True}):
 					link = "https://github.com{}".format(github_search_occurrence['href'])
-					#Remove duplicate findings in different repos with same code
-					file = link.split("/")[-1]
-					if file in dup_files or "sponsors/accounts" in link:
+					if "sponsors/accounts" in link:
 						continue
-					else:
-						dup_files.append(file)
+					if self.filterdups:
+						file = link.split("/")[-1]
+						if file in self.dup_files :
+							continue
+						else:
+							self.dup_files.append(file)
 
 					github_search_result.append({
 						"link": link,
@@ -311,6 +314,7 @@ def main():
 	parser.add_argument("-o", "--output", help="Output file (JSON)")
 	parser.add_argument("-v", "--verbose", action='store_true', help="Show debug info")
 	parser.add_argument("-silent", "--silent", action='store_true', help="Show only results in JSON format in stdout")
+	parser.add_argument("-f", "--filter", action='store_true', help="Remove duplicate files from results")
 
 	args = parser.parse_args()
 
@@ -321,10 +325,11 @@ def main():
 	output_file = args.output if args.output else False
 	verbosity = True if args.verbose else False
 	silent = True if args.silent else False
+	filterdups = True if args.filter else False
 
 	query_term = setSearchQuery(query, org)
 
-	gitdork = GithubScrapDork(config_file, dork_file, query_term, output_file, verbosity, silent)
+	gitdork = GithubScrapDork(config_file, dork_file, query_term, output_file, verbosity, silent, filterdups)
 	gitdork.launchGitDorking()
 
 if __name__ == '__main__':
