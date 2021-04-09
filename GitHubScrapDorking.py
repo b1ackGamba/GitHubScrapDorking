@@ -304,7 +304,7 @@ def main():
 	"""main"""
 	parser = argparse.ArgumentParser(
 		description="GithubScraper", 
-		epilog="Example usage:\t python {} -c config.json -d Dorks/all_dorks.txt -org example.com".format(os.path.basename(__file__))
+		epilog="Example usage:\t python {} -c config.json -d Dorks/all_dorks.txt -q example.com".format(os.path.basename(__file__))
 		)
 
 	parser.add_argument("-c", "--config", required=True, help="Configuration file with credentials")
