@@ -63,7 +63,6 @@ class GithubScrapDork():
 		self.silent = silent
 		self.final_results = {"results":list()}
 		self.filterdups = filterdups
-		self.dup_files = list()
 
 		if silent:
 			blockPrint()
@@ -168,16 +167,19 @@ class GithubScrapDork():
 				sleep(GITHUB_HTTP_DELAY)
 				github_soup_page = BeautifulSoup(github_html_page.text, 'html.parser')
 				github_search_date = datetime.now().strftime('%F %T')
+				dup_files = list()
+
 				for github_search_occurrence in github_soup_page.find_all('a', {'data-hydro-click': True}):
 					link = "https://github.com{}".format(github_search_occurrence['href'])
 					if "sponsors/accounts" in link:
 						continue
+
 					if self.filterdups:
 						file = link.split("/")[-1]
-						if file in self.dup_files :
+						if file in dup_files :
 							continue
 						else:
-							self.dup_files.append(file)
+							dup_files.append(file)
 
 					github_search_result.append({
 						"link": link,
@@ -304,7 +306,7 @@ def main():
 	"""main"""
 	parser = argparse.ArgumentParser(
 		description="GithubScraper", 
-		epilog="Example usage:\t python {} -c config.json -d Dorks/all_dorks.txt -q example.com".format(os.path.basename(__file__))
+		epilog="Example usage:\t python {} -c config.json -d Dorks/all_dorks.txt -org example.com".format(os.path.basename(__file__))
 		)
 
 	parser.add_argument("-c", "--config", required=True, help="Configuration file with credentials")
