@@ -271,7 +271,7 @@ class GithubScrapDork():
 
 			if self.silent:
 				enablePrint()
-				print(self.final_results)
+				print(json.dumps(self.final_results))
 				blockPrint()
 
 		except MsgException as msg_exception:
