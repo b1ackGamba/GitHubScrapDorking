@@ -147,6 +147,8 @@ class GithubScrapDork():
 			github_count = github_soup_count.span.text
 			if "k" in github_count.lower():
 				github_count = "{}000".format(github_count[:github_count.lower().index("k")])
+			elif "+" in github_count:
+				github_count = github_count.strip("+")
 		except Exception as exception:
 			raise MsgException('Unable to count GitHub search results', exception)
 		return github_count
