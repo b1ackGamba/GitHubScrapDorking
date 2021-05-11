@@ -18,6 +18,7 @@ from urllib.parse import urlencode, quote_plus
 
 GITHUB_HTTP_DELAY = 1.5
 SLACK_HTTP_DELAY = 1.5
+SLACK_CHUNK_SIZE = 8
 
 github_types = [
 	'repositories',
@@ -47,16 +48,16 @@ def panic(msg_exception):
 
 
 def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
+	sys.stdout = open(os.devnull, 'w')
 
 def enablePrint():
-    sys.stdout = sys.__stdout__
+	sys.stdout = sys.__stdout__
 
 
 class GithubScrapDork():
 	def __init__(self, config_file, dorkfile, github_query_terms, output_file, verbosity, silent, filterdups):
 		self.github_query_terms = github_query_terms
-		self.github_username, self.github_password, self.github_otp = self.__load_config(config_file)
+		self.github_username, self.github_password, self.github_otp, self.slack_webhook = self.__load_config(config_file)
 		self.dorks = self.__load_dorkfile(dorkfile)
 		self.output_file = output_file
 		self.verbosity = verbosity
@@ -80,9 +81,10 @@ class GithubScrapDork():
 				github_username = config_json.get('github_username')
 				github_password = config_json.get('github_password')
 				github_otp = config_json.get('github_otp')
+				slack_webhook = config_json.get('slack_webhook')
 		except Exception as exception:
 			raise MsgException('Config file could not be read', exception)
-		return github_username, github_password, github_otp
+		return github_username, github_password, github_otp, slack_webhook
 
 
 	def __load_dorkfile(self, dork_path):
@@ -98,6 +100,34 @@ class GithubScrapDork():
 			raise MsgException('Dork file could not be read', exception)
 		return dork_array
 
+
+	def __notify_slack(self):
+		"""Slack notification through webhook"""
+		try:
+			print("[+] Sending Slack notifications...")
+			slack_http_headers = {
+				'User-Agent': 'GitHubScrap',
+				'Content-type': 'application/json',
+			}
+			slack_http_data = {}
+			for ix in range(0,len(self.final_results["results"]),SLACK_CHUNK_SIZE):
+				data_to_send = ""
+				chunk_results = self.final_results["results"][ix:ix+SLACK_CHUNK_SIZE]
+				for url in chunk_results:
+					data_to_send += "{} ({})\n".format(url["query"], url["link"])
+
+				slack_http_data.update({
+					'text': data_to_send,
+				})
+				requests.post(
+					self.slack_webhook,
+					headers = slack_http_headers,
+					data = json.dumps(slack_http_data),
+				)
+				sleep(SLACK_HTTP_DELAY)
+
+		except Exception as exception:
+			raise MsgException('Slack notifications could not be sent', exception)
 
 	def __github_login(self, github_http_session):
 		"""github logging in (3 requests needed)"""
@@ -270,6 +300,9 @@ class GithubScrapDork():
 
 			if self.output_file:
 				unseen_urls = self.__saveGithubResults()
+
+			if self.slack_webhook and self.final_results["results"]:
+				self.__notify_slack()
 
 			if self.silent:
 				enablePrint()
