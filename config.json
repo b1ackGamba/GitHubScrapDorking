@@ -2,5 +2,5 @@
         "github_username": "username",
         "github_password": "password",
         "github_otp": "base32secret3232",
-        "slack_webhook"null
+        "slack_webhook": null
 }
