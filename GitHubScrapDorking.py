@@ -201,7 +201,7 @@ class GithubScrapDork():
 				github_soup_page = BeautifulSoup(github_html_page.text, 'html.parser')
 				github_search_date = datetime.now().strftime('%F %T')
 
-				for github_search_occurrence in github_soup_page.find_all('a', {'data-hydro-click': True}):
+				for github_search_occurrence in github_soup_page.find_all('a', {'data-hydro-click': True, 'title': True}):
 					link = "https://github.com{}".format(github_search_occurrence['href'])
 					if "sponsors/accounts" in link:
 						continue
@@ -284,10 +284,12 @@ class GithubScrapDork():
 				for github_type in github_types:
 					query_term = "{} {}".format(self.github_query_terms, dork)
 					github_count = self.__github_search_count(github_http_session, query_term, github_type)
+
 					if int(github_count) >= 1:
 						print(stylize("[+] {} results while looking for {} ({})".format(github_count, query_term, github_type), colored.fg("green")))
 					elif self.verbosity:
 						print("[+] {} results while looking for {} ({})".format(github_count, query_term, github_type))
+
 
 					if github_count != '0':
 						github_results = self.__github_search_retrieval(github_http_session, query_term, github_type, dork)
